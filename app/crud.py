@@ -3,7 +3,10 @@ from . import models
 from app.schemas import CategoryCreate
 from app.schemas import SubCategoryCreate
 from fastapi import HTTPException
+from sqlalchemy import select
 
+"""
+          Category Crud             """
 
 def create_category(db: Session, category:CategoryCreate):
     db_category = models.Category(**category.model_dump())
@@ -60,3 +63,24 @@ def get_subcategory_by_id(db: Session, subcategory_id: int):
     if not subcategory:
         raise HTTPException(status_code=404, detail="SubCategory not found")
     return subcategory
+
+def get_subcategories_with_category(db: Session):
+
+    stmt = (
+        select(models.SubCategory.name, models.Category.name.label("category_name"))
+        .join(models.Category)
+    )
+    result = db.execute(stmt).all()
+    return [{"subcategory": sub, "category": cat} for sub, cat in result]
+
+
+def get_subcategories_by_category_name(db: Session, category_name: str):
+
+    stmt = (
+        select(models.SubCategory.name.label("subcategory_name"),
+               models.Category.name.label("category_name"))
+        .join(models.Category)
+        .where(models.Category.name == category_name)
+    )
+    result = db.execute(stmt).all()
+    return [{"subcategory": sub, "category": cat} for sub, cat in result]
